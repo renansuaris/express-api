@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Alunos</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    button { padding: 5px 10px; margin: 2px; }
+  </style>
+</head>
+<body>
+  <h2>Gerenciar Alunos</h2>
+  <input type="text" id="nome" placeholder="Nome do Aluno">
+  <input type="number" id="ira" placeholder="IRA">
+  <button onclick="criarAluno()">Criar</button>
+  <table id="tabelaAlunos">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>IRA</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p>Média dos IRAs: <span id="mediaIRA"></span></p>
+
+  <script>
+    async function criarAluno() {
+      const nome = document.getElementById('nome').value;
+      const ira = document.getElementById('ira').value;
+      await fetch('/alunos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, ira })
+      });
+      carregarAlunos();
+    }
+
+    async function carregarAlunos() {
+      const response = await fetch('/alunos');
+      const alunos = await response.json();
+      const tbody = document.querySelector('#tabelaAlunos tbody');
+      tbody.innerHTML = '';
+      let somaIRA = 0;
+      alunos.forEach(aluno => {
+        somaIRA += parseFloat(aluno.ira);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${aluno.nome}</td>
+          <td>${aluno.ira}</td>
+          <td>
+            <button onclick="editarAluno('${aluno._id}')">Editar</button>
+            <button onclick="apagarAluno('${aluno._id}')">Apagar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('mediaIRA').textContent = (somaIRA / alunos.length).toFixed(2) || '0.00';
+    }
+
+    async function editarAluno(id) {
+      const novoNome = prompt('Novo nome:', '');
+      const novoIra = prompt('Novo IRA:', '');
+      if (novoNome && novoIra) {
+        await fetch(`/alunos/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: novoNome, ira: novoIra })
+        });
+        carregarAlunos();
+      }
+    }
+
+    async function apagarAluno(id) {
+      if (confirm('Tem certeza?')) {
+        await fetch(`/alunos/${id}`, { method: 'DELETE' });
+        carregarAlunos();
+      }
+    }
+
+    carregarAlunos();
+  </script>
+</body>
+</html>
